@@ -1,43 +1,44 @@
 package com.maike.auth.util;
 
+import com.maike.auth.model.AppUser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
-import java.util.Base64;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
 
-    private final Key key;
+    private final SecretKey secretKey;
 
     public JwtUtil() {
         String secret = System.getenv("JWT_SECRET");
         if (secret == null || secret.isEmpty()) {
-            this.key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+            this.secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
             System.out.println("⚠️ JWT_SECRET not set, generated temporary key.");
         } else {
-            byte[] decodedKey = Base64.getDecoder().decode(secret);
-            this.key = Keys.hmacShaKeyFor(decodedKey);
+            this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         }
     }
 
-    public String generateToken(String username) {
+    public String generateToken(AppUser user) {
         return Jwts.builder()
-                .setSubject(username)
+                .setSubject(user.username())
+                .claim("role", user.role().name())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hora
-                .signWith(key)
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour
+                .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
     public String extractUsername(String token) {
         Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(secretKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();

@@ -1,6 +1,7 @@
 package com.maike.auth.service;
 
 import com.maike.auth.model.AuthRequest;
+import com.maike.auth.repository.UserRepositoryMock;
 import com.maike.auth.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,12 +21,12 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         jwtUtil = new JwtUtil();
-        authService = new AuthService(jwtUtil, Mockito.mock(PasswordEncoder.class));
+        authService = new AuthService(jwtUtil, new UserRepositoryMock());
     }
 
     @Test
     void authenticate_validCredentials_returnsToken() {
-        AuthRequest request = new AuthRequest("admin", "1234");
+        AuthRequest request = new AuthRequest("admin", "password");
         var response = authService.authenticate(request);
 
         assertNotNull(response);
